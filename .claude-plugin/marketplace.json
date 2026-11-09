@@ -1,0 +1,42 @@
+{
+  "name": "fenxianglife-skills",
+  "description": "粉象网购省钱管家：发链接判断值不值得买、说型号全网找最低价、说需求推荐商品，覆盖淘宝/天猫、京东、唯品会。",
+  "owner": {
+    "name": "粉象生活",
+    "url": "https://github.com/fenxianglife-ai/fenxianglife-skills"
+  },
+  "plugins": [
+    {
+      "name": "fenxiang-saving-assistant",
+      "displayName": "粉象网购省钱管家",
+      "source": "./",
+      "description": "发链接判断值不值得买、说型号全网找最低价、说需求推荐商品，覆盖淘宝/天猫、京东、唯品会；与粉象 App 的 AI 省钱管家同一套判断。",
+      "version": "1.0.7",
+      "author": {
+        "name": "粉象生活",
+        "url": "https://github.com/fenxianglife-ai/fenxianglife-skills"
+      },
+      "homepage": "https://github.com/fenxianglife-ai/fenxianglife-skills",
+      "repository": "https://github.com/fenxianglife-ai/fenxianglife-skills",
+      "category": "productivity",
+      "keywords": [
+        "shopping",
+        "price-comparison",
+        "price-history",
+        "taobao",
+        "jd",
+        "vipshop",
+        "mcp"
+      ],
+      "skills": [
+        "./fenxiang-saving-assistant"
+      ],
+      "mcpServers": {
+        "fenxiang-saving-assistant": {
+          "type": "http",
+          "url": "https://api.fenxianglife.com/njia/mcp"
+        }
+      }
+    }
+  ]
+}
