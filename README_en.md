@@ -31,7 +31,7 @@ One-line verdict → final price and order link → comparison table → price t
 
 ### Ready to use
 
-Free, no sign-up and no API key. Connecting the Fenxiang MCP server is recommended; without it, the Python scripts bundled with the Skill (standard library only) can query the service directly.
+Free. We recommend applying for an API key on the [Fenxiang AI Open Platform](https://ai.fenxianglife.com) (test keys are free); it also works without one, limited to 60 calls per minute per IP and the last 30 days of price history. Connecting the Fenxiang MCP server is recommended; without it, the Python scripts bundled with the Skill (standard library only) can query the service directly.
 
 ## Capabilities
 
@@ -42,7 +42,7 @@ Free, no sign-up and no API key. Connecting the Fenxiang MCP server is recommend
 | Only a model or product name, asking where it is cheapest | `compare_by_name` | Final price at each store for the same item, lowest first |
 | A need (budget, use, gift recipient) | `recommend_goods` | Grouped recommendations of products on sale; clarifying questions first if needed |
 | A keyword to browse | `goods_search` | Products on sale, optionally by price range or official stores only |
-| Price history only | `history_price` | Every coupon-price change since tracking began |
+| Price history only | `history_price` | Every coupon-price change since tracking began (last 30 days without an API key) |
 | Comparison table only | `compare_price` | Prices of the same item across channels |
 | Cheapest way to buy only | `saving_plan` | Switching stores, membership, bundling, with steps |
 
@@ -52,7 +52,16 @@ All tools are read-only: they never place orders or change any account data.
 
 ### Option 1: Claude Code plugin (recommended, installs the Skill and MCP together)
 
-In a Claude Code session:
+First sign up on the [Fenxiang AI Open Platform](https://ai.fenxianglife.com) and apply for an API key (test keys are free), then set an environment variable:
+
+```bash
+# macOS / Linux: add this to ~/.zshrc or ~/.bashrc and open a new terminal
+export FENXIANG_MCP_API_KEY="your API key"
+```
+
+The plugin's MCP config reads the key from `FENXIANG_MCP_API_KEY` (sent as the `X-Api-Key` header). It still works without one, as an anonymous caller: at most 60 calls per minute per IP, and price history limited to the last 30 days.
+
+Then, in a Claude Code session:
 
 ```text
 /plugin marketplace add fenxianglife-ai/fenxianglife-skills
@@ -66,7 +75,7 @@ claude plugin marketplace add fenxianglife-ai/fenxianglife-skills
 claude plugin install fenxiang-saving-assistant@fenxianglife-skills
 ```
 
-Then run `/reload-plugins` when prompted, or restart Claude Code. The plugin installs both the Skill and the Fenxiang MCP server, so the manual steps below are not needed.
+Then run `/reload-plugins` when prompted, or restart Claude Code. The plugin installs both the Skill and the Fenxiang MCP server, so the manual steps below are not needed. If you change `FENXIANG_MCP_API_KEY` later, restart Claude Code for it to take effect.
 
 ### Option 2: Manual install (Claude Code, Cursor, etc.)
 
@@ -116,12 +125,12 @@ The result should look like:
 
 #### Step 3: Connect the Fenxiang MCP server (recommended)
 
-Endpoint: `https://api.fenxianglife.com/njia/mcp` (MCP Streamable HTTP, free, no API key)
+Endpoint: `https://api.fenxianglife.com/njia/mcp` (MCP Streamable HTTP). Send your API key in the `X-Api-Key` header; without it the server still connects, with the limits above.
 
 **Claude Code**
 
 ```bash
-claude mcp add --transport http fenxiang-saving-assistant https://api.fenxianglife.com/njia/mcp
+claude mcp add --transport http fenxiang-saving-assistant https://api.fenxianglife.com/njia/mcp --header "X-Api-Key: $FENXIANG_MCP_API_KEY"
 ```
 
 **Cursor**: add this to `<project>/.cursor/mcp.json` or `~/.cursor/mcp.json`
@@ -130,13 +139,16 @@ claude mcp add --transport http fenxiang-saving-assistant https://api.fenxiangli
 {
   "mcpServers": {
     "fenxiang-saving-assistant": {
-      "url": "https://api.fenxianglife.com/njia/mcp"
+      "url": "https://api.fenxianglife.com/njia/mcp",
+      "headers": {
+        "X-Api-Key": "${env:FENXIANG_MCP_API_KEY}"
+      }
     }
   }
 }
 ```
 
-**Other tools**: add a Streamable HTTP MCP server with the same endpoint, following the tool's documentation.
+**Other tools**: add a Streamable HTTP MCP server with the same endpoint, following the tool's documentation, and put your key in the `X-Api-Key` header.
 
 > Works without MCP too: the Skill falls back to its bundled `scripts/fenxiang_mcp.py` (Python 3, standard library only).
 
@@ -235,7 +247,11 @@ fenxianglife-skills/
 
 ### Q: Is it free? Do I need an account or API key?
 
-**A:** It is free, with no sign-up and no API key.
+**A:** It is free. Without an API key you get at most 60 calls per minute per IP and the last 30 days of price history. Sign up on the [Fenxiang AI Open Platform](https://ai.fenxianglife.com) and apply for a test key (free, manually reviewed) to use the key's quota instead: 10,000 calls a month, 1 call per second per capability, and full price history since tracking began.
+
+### Q: I get 401, 403 or 429
+
+**A:** 401: the key is invalid; check `FENXIANG_MCP_API_KEY`, and use the new key after a reset. 403: the key is paused, disabled, or not enabled for that capability; fix it in the platform console. 429: too many calls or the quota is used up; wait for the `Retry-After` header. Without a key, it means more than 60 calls in a minute.
 
 ### Q: How do I update?
 
@@ -247,7 +263,7 @@ fenxianglife-skills/
 
 ## Version
 
-Current version 1.0.7, the same as the Fenxiang MCP server.
+Current version 1.0.8, the same as the Fenxiang MCP server.
 
 ## Links
 

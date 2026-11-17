@@ -10,7 +10,8 @@
 
 环境变量：
   FENXIANG_MCP_URL          默认 https://api.fenxianglife.com/njia/mcp
-  FENXIANG_MCP_API_KEY      可选；当前服务不需要鉴权
+  FENXIANG_MCP_API_KEY      粉象AI开放平台的 API Key，在 https://ai.fenxianglife.com 申请（测试 Key 免费）。
+                            可以不填：不带 Key 时同一 IP 每分钟最多 60 次，历史价只给近 30 天
 
 TLS：默认严格校验证书；仅内网自签名测试环境可显式加 --insecure。
 """
@@ -25,6 +26,7 @@ import urllib.error
 import urllib.request
 
 DEFAULT_URL = "https://api.fenxianglife.com/njia/mcp"
+APPLY_URL = "https://ai.fenxianglife.com"
 TOOLS = (
     "buy_advice", "batch_analyze", "compare_by_name", "recommend_goods",
     "goods_search", "history_price", "compare_price", "saving_plan",
@@ -63,7 +65,8 @@ class McpClient:
                 content_type = response.headers.get("Content-Type", "")
         except urllib.error.HTTPError as error:
             body = error.read().decode("utf-8", errors="replace")
-            raise McpError("HTTP %s: %s" % (error.code, body[:500])) from error
+            raise McpError(http_error_message(error.code, body, error.headers.get("Retry-After"),
+                                              bool(self.api_key))) from error
         except (urllib.error.URLError, OSError) as error:
             # 读超时（TimeoutError）不是 URLError，一并转成 McpError，调用方统一按失败处理
             raise McpError("connection failed: %s" % error) from error
@@ -100,6 +103,31 @@ class McpClient:
         text = _first_text(result)
         structured = result.get("structuredContent")
         return text, parse_text(text), structured
+
+
+def http_error_message(status, body, retry_after=None, has_key=False):
+    """鉴权、限流错误给出可读提示，带上服务端的 code、message 和 requestId，方便反馈。"""
+    try:
+        data = json.loads(body)
+    except (TypeError, json.JSONDecodeError):
+        data = None
+    if not isinstance(data, dict):
+        return "HTTP %s: %s" % (status, (body or "")[:500])
+    detail = "HTTP %s，code %s：%s" % (status, data.get("code"), data.get("message"))
+    if data.get("requestId"):
+        detail += "（requestId %s）" % data["requestId"]
+    wait = " %s 秒" % retry_after if retry_after else "一会儿"
+    if status == 401:
+        hint = ("API Key 无效：检查 FENXIANG_MCP_API_KEY，Key 重置后要换成新的" if has_key
+                else "这个接口需要 API Key，在 %s 申请后设置 FENXIANG_MCP_API_KEY" % APPLY_URL)
+    elif status == 403:
+        hint = "API Key 已暂停、停用，或没有开通这项能力：到 %s 的工作台处理" % APPLY_URL
+    elif status == 429:
+        hint = ("调用太快或本月额度用完：等%s再试，额度用完要等下月 1 日" % wait if has_key
+                else "不带 API Key 时同一 IP 每分钟最多 60 次：等%s再试，或在 %s 申请 API Key" % (wait, APPLY_URL))
+    else:
+        return detail
+    return "%s。%s" % (hint, detail)
 
 
 def _first_text(result):

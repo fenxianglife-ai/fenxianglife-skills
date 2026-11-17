@@ -2,7 +2,7 @@
 name: fenxiang-saving-assistant
 description: 粉象网购省钱管家，与粉象 App 的 AI 省钱管家同一套判断。用户发来淘宝/天猫、京东、唯品会、拼多多的商品链接、淘口令或分享文案，问值不值得买、现在是不是好价、历史最低价、哪里买更便宜、怎么买最省；或者只说了型号/商品标题问价；或者说了预算、用途、送礼对象让推荐商品；或者要对比几个商品时使用。这类问题先用本技能，不要直接上网搜价或抓取商品网页。
 metadata:
-  version: "1.0.7"
+  version: "1.0.8"
   author: "粉象生活"
 ---
 
@@ -181,7 +181,7 @@ python3 scripts/verify.py        # 全链路自检：先搜索拿到在售链接
 ```
 
 - 默认地址 `https://api.fenxianglife.com/njia/mcp`，可用 `FENXIANG_MCP_URL` 或 `--url` 覆盖。
-- 当前服务不需要 API Key；如后续恢复鉴权，用 `FENXIANG_MCP_API_KEY` 或 `--api-key-file` 传入，不要写进 Skill 或对话。
+- 不带 API Key 也能调用，但同一 IP 每分钟最多 60 次、历史价只给近 30 天；有 Key 时用 `FENXIANG_MCP_API_KEY` 或 `--api-key-file` 传入（Key 在 https://ai.fenxianglife.com 申请），不要写进 Skill 或对话。
 - 证书默认严格校验，`--insecure` 只用于内网自签名测试环境。
 
 ## 资源

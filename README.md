@@ -31,7 +31,7 @@
 
 ### 开箱即用
 
-免费，不需要注册，也不需要 API Key。推荐连上粉象 MCP 服务；没连上时，Skill 自带的 Python 脚本（只用标准库）也能直接查询。
+免费。建议在 [粉象AI开放平台](https://ai.fenxianglife.com) 申请 API Key（测试 Key 免费）；不带 Key 也能用，但同一 IP 每分钟最多 60 次、历史价只给近 30 天。推荐连上粉象 MCP 服务；没连上时，Skill 自带的 Python 脚本（只用标准库）也能直接查询。
 
 ## 能力介绍
 
@@ -42,7 +42,7 @@
 | 只说型号或商品名，问哪里便宜 | `compare_by_name` | 全网同款各店到手价，从低到高 |
 | 说需求让推荐（预算、用途、送礼对象） | `recommend_goods` | 分组推荐的在售商品；需求不清楚时先给澄清问题 |
 | 按关键词看看有哪些商品 | `goods_search` | 在售商品列表，可限价格区间、只看官方店 |
-| 只要历史价曲线 | `history_price` | 收录以来的全部券后价变价点 |
+| 只要历史价曲线 | `history_price` | 收录以来的全部券后价变价点（不带 Key 时只给近 30 天） |
 | 只要比价表 | `compare_price` | 同款各渠道报价 |
 | 只问怎么买最省 | `saving_plan` | 换店、会员、凑单等买法和步骤 |
 
@@ -52,7 +52,16 @@
 
 ### 方式一：Claude Code 插件（推荐，一次装好 Skill 和 MCP）
 
-在 Claude Code 对话里执行：
+先在 [粉象AI开放平台](https://ai.fenxianglife.com) 注册并申请 API Key（测试 Key 免费），再设置环境变量：
+
+```bash
+# macOS / Linux：写进 ~/.zshrc 或 ~/.bashrc，重新打开终端后生效
+export FENXIANG_MCP_API_KEY="你的 API Key"
+```
+
+插件的 MCP 配置从 `FENXIANG_MCP_API_KEY` 读取 Key（请求头 `X-Api-Key`）。没设置时也能用，按不带 Key 处理：同一 IP 每分钟最多 60 次，历史价只给近 30 天。
+
+然后在 Claude Code 对话里执行：
 
 ```text
 /plugin marketplace add fenxianglife-ai/fenxianglife-skills
@@ -66,7 +75,7 @@ claude plugin marketplace add fenxianglife-ai/fenxianglife-skills
 claude plugin install fenxiang-saving-assistant@fenxianglife-skills
 ```
 
-装好后按提示执行 `/reload-plugins`，或重新打开 Claude Code。插件会同时装上 Skill 和粉象 MCP 服务，不用再做下面的手动步骤。
+装好后按提示执行 `/reload-plugins`，或重新打开 Claude Code。插件会同时装上 Skill 和粉象 MCP 服务，不用再做下面的手动步骤。之后改了 `FENXIANG_MCP_API_KEY`，要重新打开 Claude Code 才生效。
 
 ### 方式二：手动安装（Claude Code、Cursor 等）
 
@@ -116,12 +125,12 @@ cp -r fenxiang-saving-assistant ~/.claude/skills/
 
 #### 第三步：连接粉象 MCP 服务（推荐）
 
-服务地址：`https://api.fenxianglife.com/njia/mcp`（MCP Streamable HTTP，免费，不需要 API Key）
+服务地址：`https://api.fenxianglife.com/njia/mcp`（MCP Streamable HTTP）。请求头 `X-Api-Key` 带上你的 API Key；不带也能连，限制同上。
 
 **Claude Code**
 
 ```bash
-claude mcp add --transport http fenxiang-saving-assistant https://api.fenxianglife.com/njia/mcp
+claude mcp add --transport http fenxiang-saving-assistant https://api.fenxianglife.com/njia/mcp --header "X-Api-Key: $FENXIANG_MCP_API_KEY"
 ```
 
 **Cursor**：在 `<项目>/.cursor/mcp.json` 或 `~/.cursor/mcp.json` 里加上
@@ -130,13 +139,16 @@ claude mcp add --transport http fenxiang-saving-assistant https://api.fenxiangli
 {
   "mcpServers": {
     "fenxiang-saving-assistant": {
-      "url": "https://api.fenxianglife.com/njia/mcp"
+      "url": "https://api.fenxianglife.com/njia/mcp",
+      "headers": {
+        "X-Api-Key": "${env:FENXIANG_MCP_API_KEY}"
+      }
     }
   }
 }
 ```
 
-**其他工具**：按各自文档添加一个 Streamable HTTP 类型的 MCP 服务，地址同上。
+**其他工具**：按各自文档添加一个 Streamable HTTP 类型的 MCP 服务，地址同上，请求头 `X-Api-Key` 填你的 Key。
 
 > 不连 MCP 也能用：Skill 会改用自带的 `scripts/fenxiang_mcp.py`（需要 Python 3，只用标准库）直接查询。
 
@@ -245,7 +257,11 @@ fenxianglife-skills/
 
 ### Q: 收费吗？需要注册或 API Key 吗？
 
-**A:** 免费，不需要注册，也不需要 API Key。
+**A:** 免费。不带 API Key 也能用，但同一 IP 每分钟最多 60 次、历史价只给近 30 天。在 [粉象AI开放平台](https://ai.fenxianglife.com) 注册并申请测试 Key（免费，人工审核）后，按 Key 的额度计算：每月 1 万次，每项能力每秒 1 次，历史价返回收录以来的全部数据。
+
+### Q: 返回 401、403 或 429 怎么办？
+
+**A:** 401：Key 无效，检查 `FENXIANG_MCP_API_KEY`，Key 重置后要换成新的；403：Key 已暂停、停用，或没开通这项能力，到开放平台工作台处理；429：调用太快或额度用完，按响应头 `Retry-After` 等一会儿再试，不带 Key 时是超过了每分钟 60 次。
 
 ### Q: 如何更新？
 
@@ -257,7 +273,7 @@ fenxianglife-skills/
 
 ## 版本
 
-当前版本 1.0.7，与粉象 MCP 服务端版本一致。
+当前版本 1.0.8，与粉象 MCP 服务端版本一致。
 
 ## 相关链接
 

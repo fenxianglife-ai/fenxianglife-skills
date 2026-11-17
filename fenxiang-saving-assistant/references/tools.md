@@ -4,7 +4,7 @@
 
 - 生产：`https://api.fenxianglife.com/njia/mcp`
 - 协议：MCP Streamable HTTP（无状态，`POST /mcp`），JSON-RPC 2.0；`initialize` 返回 `instructions`（选工具与回答规则），`prompts/list` 有 4 个常用提示词
-- 鉴权：当前服务不需要 API Key；如后续恢复，支持 `Authorization: Bearer <API Key>` 或 `X-Api-Key: <API Key>`
+- 鉴权：`X-Api-Key: <API Key>` 或 `Authorization: Bearer <API Key>`，Key 在 https://ai.fenxianglife.com 申请；不带 Key 也能调用 MCP，但同一 IP 每分钟最多 60 次（WorkBuddy、豆包、千问官方渠道 120 次），历史价只给近 30 天
 - 请求头：`Content-Type: application/json`，`Accept: application/json, text/event-stream`
 - 所有工具只读：不下单、不改用户数据
 
