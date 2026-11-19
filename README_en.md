@@ -27,11 +27,11 @@ All prices come from live queries. Final price, coupon price, government subsidi
 
 ### Easy-to-read answers
 
-One-line verdict → final price and order link → comparison table → price trend and price track → next step. Comparisons are always tables that fit on a phone screen.
+One-line verdict → final price and order link → comparison table → price-history conclusions → next step. Comparisons are always tables that fit on a phone screen.
 
 ### Ready to use
 
-Free. We recommend applying for an API key on the [Fenxiang AI Open Platform](https://ai.fenxianglife.com) (test keys are free); it also works without one, limited to 60 calls per minute per IP and the last 30 days of price history. Connecting the Fenxiang MCP server is recommended; without it, the Python scripts bundled with the Skill (standard library only) can query the service directly.
+Free. We recommend applying for an API key on the [Fenxiang AI Open Platform](https://ai.fenxianglife.com) (test keys are free); it also works without one, limited to 60 calls per minute per IP. Without a key, and with a test key, results are conclusions only: the all-time low and its date, how far the current price is above it, and the 30-day low and average; price comparison lists the current store plus up to 3 others. Connecting the Fenxiang MCP server is recommended; without it, the Python scripts bundled with the Skill (standard library only) can query the service directly.
 
 ## Capabilities
 
@@ -42,7 +42,7 @@ Free. We recommend applying for an API key on the [Fenxiang AI Open Platform](ht
 | Only a model or product name, asking where it is cheapest | `compare_by_name` | Final price at each store for the same item, lowest first |
 | A need (budget, use, gift recipient) | `recommend_goods` | Grouped recommendations of products on sale; clarifying questions first if needed |
 | A keyword to browse | `goods_search` | Products on sale, optionally by price range or official stores only |
-| Price history only | `history_price` | Every coupon-price change since tracking began (last 30 days without an API key) |
+| Price history only | `history_price` | All-time low and its date, how far the current price is above it, 30-day low and average (formal keys on the open platform also get every price change and the trend chart) |
 | Comparison table only | `compare_price` | Prices of the same item across channels |
 | Cheapest way to buy only | `saving_plan` | Switching stores, membership, bundling, with steps |
 
@@ -59,7 +59,7 @@ First sign up on the [Fenxiang AI Open Platform](https://ai.fenxianglife.com) an
 export FENXIANG_MCP_API_KEY="your API key"
 ```
 
-The plugin's MCP config reads the key from `FENXIANG_MCP_API_KEY` (sent as the `X-Api-Key` header). It still works without one, as an anonymous caller: at most 60 calls per minute per IP, and price history limited to the last 30 days.
+The plugin's MCP config reads the key from `FENXIANG_MCP_API_KEY` (sent as the `X-Api-Key` header). It still works without one, as an anonymous caller: at most 60 calls per minute per IP, conclusions only.
 
 Then, in a Claude Code session:
 
@@ -247,7 +247,7 @@ fenxianglife-skills/
 
 ### Q: Is it free? Do I need an account or API key?
 
-**A:** It is free. Without an API key you get at most 60 calls per minute per IP and the last 30 days of price history. Sign up on the [Fenxiang AI Open Platform](https://ai.fenxianglife.com) and apply for a test key (free, manually reviewed) to use the key's quota instead: 10,000 calls a month, 1 call per second per capability, and full price history since tracking began.
+**A:** It is free. Without an API key you get at most 60 calls per minute per IP and conclusions only. Sign up on the [Fenxiang AI Open Platform](https://ai.fenxianglife.com) and apply for a test key (free, manually reviewed) to use the key's quota instead: 1,000 calls a month and 1 call per second per capability. Test keys also get conclusions only; JSON and full data (every price change, the trend chart, all stores) need a signed formal key.
 
 ### Q: I get 401, 403 or 429
 
@@ -263,7 +263,7 @@ fenxianglife-skills/
 
 ## Version
 
-Current version 1.0.8, the same as the Fenxiang MCP server.
+Current version 1.0.9, the same as the Fenxiang MCP server.
 
 ## Links
 

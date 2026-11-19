@@ -11,7 +11,7 @@
       "displayName": "粉象网购省钱管家",
       "source": "./",
       "description": "发链接判断值不值得买、说型号全网找最低价、说需求推荐商品，覆盖淘宝/天猫、京东、唯品会；与粉象 App 的 AI 省钱管家同一套判断。",
-      "version": "1.0.8",
+      "version": "1.0.9",
       "author": {
         "name": "粉象生活",
         "url": "https://github.com/fenxianglife-ai/fenxianglife-skills"

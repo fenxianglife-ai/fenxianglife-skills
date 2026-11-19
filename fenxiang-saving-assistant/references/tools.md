@@ -4,15 +4,15 @@
 
 - 生产：`https://api.fenxianglife.com/njia/mcp`
 - 协议：MCP Streamable HTTP（无状态，`POST /mcp`），JSON-RPC 2.0；`initialize` 返回 `instructions`（选工具与回答规则），`prompts/list` 有 4 个常用提示词
-- 鉴权：`X-Api-Key: <API Key>` 或 `Authorization: Bearer <API Key>`，Key 在 https://ai.fenxianglife.com 申请；不带 Key 也能调用 MCP，但同一 IP 每分钟最多 60 次（WorkBuddy、豆包、千问官方渠道 120 次），历史价只给近 30 天
+- 鉴权：`X-Api-Key: <API Key>` 或 `Authorization: Bearer <API Key>`，Key 在 https://ai.fenxianglife.com 申请；不带 Key 也能调用 MCP，但同一 IP 每分钟最多 60 次（WorkBuddy、豆包、千问官方渠道 120 次），非官方渠道每个 IP 每天另有上限；不带 Key 和测试 Key 都只返回 Markdown 结论（历史价只给 4 项结论，比价最多当前店加 3 家、不给规格和店铺类型），JSON 和全量数据只给开放平台正式 Key
 - 请求头：`Content-Type: application/json`，`Accept: application/json, text/event-stream`
 - 所有工具只读：不下单、不改用户数据
 
 ## 通用约定
 
-- 每个工具都有可选参数 `responseFormat`：`markdown`（默认）或 `json`；它不在 `tools/list` 的入参定义里（宿主默认拿 Markdown），脚本和接口调用需要 JSON 时再传。
+- 每个工具都有可选参数 `responseFormat`：`markdown`（默认）或 `json`；它不在 `tools/list` 的入参定义里（宿主默认拿 Markdown）。`json` 只对开放平台正式 Key 生效，不带 Key、测试 Key 传了也返回 Markdown。
 - Markdown 结果先是 `### 回答要点（可直接转述给用户）`，再是 `### 数据明细（供核对与追问，不必逐项展示）`；JSON 结果里回答要点在 `summary` 字段。
-- 回答要点里比价一律是表格，商品列表带 `#` 序号（用户说「第 N 个」时按序号找那件商品）；回答要点总带当前商品的 `[去下单]` 链接（跟到手价、店铺写在同一行）。有历史价时放在买法之后、下一步之前，分两块、图在表上面：「价格走势」是走势行（`近 N 天券后价：最高 ¥X（起 至 止） 最低…`，括号里是这个价持续的日子）加 ` ```mermaid ` 折线图（xychart-beta，每次变价画成台阶，第一行 `%%{init…}%%` 按标签数加宽画布、设线色和纵轴留白，横轴写「9月10日」），「价格轨迹」是价格轨迹表（阶段 / 券后价 / 说明）；宿主优先原样保留 Mermaid，渲染不了再用轨迹表数据自己画曲线，都不能就只给走势行和轨迹表。历史价是收录以来的全部数据，与 App 历史价曲线一致
+- 回答要点里比价一律是表格，商品列表带 `#` 序号（用户说「第 N 个」时按序号找那件商品）；回答要点总带当前商品的 `[去下单]` 链接（跟到手价、店铺写在同一行）。有历史价时放在买法之后、下一步之前：「历史价」是 4 项结论（历史最低价及日期、现在比历史最低高多少、近 30 天最低价和均价），按收录以来的全部历史算，与 App 历史价曲线一致；开放平台正式 Key 另有「价格走势」（走势行加 ` ```mermaid ` 折线图）和「价格轨迹」表（阶段 / 券后价 / 说明），图在表上面，原样保留
 - Markdown 结果另在 `structuredContent` 附商品卡片（`schema` 为 `fenxiang.cards.v1`：标题、图、到手价、平台、店铺、链接、风险标签；历史价另有 `history.points` 变价点），支持卡片的宿主可直接渲染。JSON 结果的 `structuredContent` 就是 JSON 本身。
 - JSON 结果只给模型用得上的字段：平台统一为中文名 `platform`；与到手价相同的 `goodsPrice`/`couponPrice`、值为 false 的风险标识（`officialShop`、`thirdPartyShop`、`overseasShop`、`priceSuspicious`、`requiresActivation` 等）不返回；不返回评分、置信度、分位、样本数和商品 ID。
 - 响应头 `X-Request-Id` 是本次请求的 ID，反馈问题时带上便于查日志。
@@ -30,8 +30,9 @@
 关键出参：
 
 - 结论：`conclusionText`（App 原话，如「💡 有更低价，建议换店买」）、`conclusionCode`、`recommendation`（`buy_now` / `switch_store` / `wait` / `watch`）、`adviceSource`（`brain` 为 App 引擎，`local` 为降级规则）
-- 价格：`currentPrice`（当前商品到手价）、`goodsUrl`（当前商品的下单链接）、`governmentSubsidy`（未扣的国补，需资格；回答要点里给「如果能领国补」的有条件结论）、`historicalLow`、`historicalLowDate`、`average30`（历史价按券后价）
-- 走势：`trendText`（文字走势行）；折线图和价格轨迹表只在 Markdown 的回答要点里
+- 价格：`currentPrice`（当前商品到手价）、`goodsUrl`（当前商品的下单链接）、`governmentSubsidy`（未扣的国补，需资格；回答要点里给「如果能领国补」的有条件结论）
+- 历史价（券后价）：`historicalLow`、`historicalLowDate`（历史最低及日期）、`aboveLow`、`aboveLowPercent`、`atHistoricalLow`（现在比历史最低高多少）、`lowest30`、`average30`（近 30 天最低价和均价）
+- 走势（只给开放平台正式 Key）：`trendText`（文字走势行）；折线图和价格轨迹表只在 Markdown 的回答要点里
 - 渠道：`bestPlatform` / `bestShop` / `bestPrice` / `bestGoodsUrl`（更便宜的稳妥渠道）、`safeOption`（官方/自营的稳妥选项）、`similarItems`（无同款时按标题找到的更便宜同款，需核对规格）
 - 说明：`reasons`、`risks`、`nextAction`、`suggestedQuestions`
 - 明细：`compareItems`（同款渠道，字段同 `compare_price`）、`savingPlan`（字段同 `saving_plan`）
@@ -90,7 +91,7 @@
 
 入参：`goodsUrl`（必填）
 
-出参：`points`（变价点，`time` 为日期、`price` 为券后价，新的在前）、`trendText`（文字走势行；折线图和价格轨迹表只在 Markdown 的回答要点里）、`couponPrice`（当前券后价）、`finalPrice`（当前到手价）、`goodsUrl`（下单链接）、`priceType`、`governmentSubsidy`、商品摘要。走势和折线图已剔除异常定金/占位价，`points` 保留原始变价点。
+出参：`historicalLow`、`historicalLowDate`、`aboveLow`、`aboveLowPercent`、`atHistoricalLow`、`lowest30`、`average30`（4 项结论，见上）；开放平台正式 Key 另给 `points`（变价点，`time` 为日期、`price` 为券后价，新的在前）、`trendText`（文字走势行；折线图和价格轨迹表只在 Markdown 的回答要点里）；`couponPrice`（当前券后价）、`finalPrice`（当前到手价）、`goodsUrl`（下单链接）、`priceType`、`governmentSubsidy`、商品摘要。走势和折线图已剔除异常定金/占位价，`points` 保留原始变价点。
 
 ### compare_price
 

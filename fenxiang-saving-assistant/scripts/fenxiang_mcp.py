@@ -10,8 +10,9 @@
 
 环境变量：
   FENXIANG_MCP_URL          默认 https://api.fenxianglife.com/njia/mcp
+  FENXIANG_MCP_CHANNEL      渠道（workbuddy、doubao 等），渠道包里已写好，一般不用设
   FENXIANG_MCP_API_KEY      粉象AI开放平台的 API Key，在 https://ai.fenxianglife.com 申请（测试 Key 免费）。
-                            可以不填：不带 Key 时同一 IP 每分钟最多 60 次，历史价只给近 30 天
+                            可以不填：不带 Key 时同一 IP 每分钟最多 60 次，只返回 Markdown 结论
 
 TLS：默认严格校验证书；仅内网自签名测试环境可显式加 --insecure。
 """
@@ -26,6 +27,11 @@ import urllib.error
 import urllib.request
 
 DEFAULT_URL = "https://api.fenxianglife.com/njia/mcp"
+# 渠道包打包时由 build.py 写入（需求 CALL-20）：WorkBuddy、豆包的包分别是 workbuddy、doubao，GitHub 的为空；
+# 也可以用环境变量 FENXIANG_MCP_CHANNEL 指定。请求地址带上 ?channel=，服务端才认得出官方渠道
+DEFAULT_CHANNEL = ""
+SKILL_VERSION = "1.0.9"
+USER_AGENT = "fenxiang-saving-assistant-skill/" + SKILL_VERSION
 APPLY_URL = "https://ai.fenxianglife.com"
 TOOLS = (
     "buy_advice", "batch_analyze", "compare_by_name", "recommend_goods",
@@ -50,6 +56,7 @@ class McpClient:
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json, text/event-stream",
+            "User-Agent": USER_AGENT,
         }
         if self.api_key:
             headers["Authorization"] = "Bearer " + self.api_key
@@ -179,8 +186,16 @@ def load_api_key(path=None):
 
 
 def build_client(args):
-    url = args.url or os.environ.get("FENXIANG_MCP_URL") or DEFAULT_URL
+    url = with_channel(args.url or os.environ.get("FENXIANG_MCP_URL") or DEFAULT_URL,
+                       os.environ.get("FENXIANG_MCP_CHANNEL") or DEFAULT_CHANNEL)
     return McpClient(url, load_api_key(args.api_key_file), timeout=args.timeout, insecure=args.insecure)
+
+
+def with_channel(url, channel):
+    """地址里还没有 channel 时带上（渠道包的 Skill 由 build.py 写好 DEFAULT_CHANNEL）。"""
+    if not channel or "channel=" in url:
+        return url
+    return url + ("&" if "?" in url else "?") + "channel=" + channel
 
 
 def main():
